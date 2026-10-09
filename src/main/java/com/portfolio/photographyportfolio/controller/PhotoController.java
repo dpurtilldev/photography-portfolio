@@ -1,5 +1,6 @@
 package com.portfolio.photographyportfolio.controller;
 
+import com.portfolio.photographyportfolio.dto.PhotoUploadRequest;
 import com.portfolio.photographyportfolio.model.Photo;
 import com.portfolio.photographyportfolio.service.PhotoService;
 import jakarta.validation.Valid;
@@ -7,10 +8,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/photos")
@@ -20,6 +35,77 @@ import java.util.List;
 public class PhotoController {
     
     private final PhotoService photoService;
+    private static final String UPLOAD_DIR = "uploads/photos/";
+    private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp");
+    
+    /**
+     * Upload photo with file
+     * POST /api/photos/upload
+     */
+  @PostMapping("/upload")
+    public ResponseEntity<?> uploadPhoto(@Valid @ModelAttribute PhotoUploadRequest req) {
+    MultipartFile file = req.file();
+    if (file.isEmpty()) {
+        return ResponseEntity.badRequest().body("Please select a file to upload");
+    }
+
+    String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
+    if (ext == null || !ALLOWED_EXT.contains(ext.toLowerCase())) {
+        return ResponseEntity.badRequest().body("Allowed types: " + ALLOWED_EXT);
+    }
+
+    // Verify it's really an image
+    try (InputStream in = file.getInputStream()) {
+        if (ImageIO.read(in) == null) {
+            return ResponseEntity.badRequest().body("File is not a valid image");
+        }
+    } catch (IOException e) {
+        return ResponseEntity.badRequest().body("Could not read image");
+    }
+
+    Path uploadPath = Paths.get(UPLOAD_DIR);
+    String uniqueFilename = UUID.randomUUID() + "." + ext.toLowerCase();
+    Path target = uploadPath.resolve(uniqueFilename);
+
+    try {
+        Files.createDirectories(uploadPath);
+        file.transferTo(target);
+
+        Photo photo = new Photo();
+        photo.setTitle(req.title());
+        photo.setDescription(req.description());
+        photo.setFileName(uniqueFilename);          // store name only
+        photo.setFileType(file.getContentType());
+        photo.setFileSize(file.getSize());
+        photo.setCaptureDate(req.captureDate());
+        photo.setLocation(req.location());
+        photo.setTags(req.tags());
+        photo.setEdited(Boolean.TRUE.equals(req.isEdited()));
+        photo.setPublic(req.isPublic() == null || req.isPublic());
+
+        if (Stream.of(req.cameraModel(), req.lens(), req.aperture(),
+                      req.shutterSpeed(), req.iso(), req.focalLength())
+                  .anyMatch(Objects::nonNull)) {
+            var cs = new Photo.CameraSettings();
+            cs.setCameraModel(req.cameraModel());
+            cs.setLens(req.lens());
+            cs.setAperture(req.aperture());
+            cs.setShutterSpeed(req.shutterSpeed());
+            cs.setIso(req.iso());
+            cs.setFocalLength(req.focalLength());
+            photo.setCameraSettings(cs);
+        }
+
+        Photo saved = photoService.createPhoto(photo);
+        log.info("File uploaded successfully: {}", uniqueFilename);
+        return ResponseEntity.created(URI.create("/api/photos/" + saved.getId())).body(saved);
+
+    } catch (Exception e) {
+        try { Files.deleteIfExists(target); } catch (IOException ignored) {}
+        log.error("Upload failed", e);
+        return ResponseEntity.internalServerError().body("Upload failed");
+    }
+}
     
     /**
      * Create a new photo
@@ -202,4 +288,6 @@ public class PhotoController {
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Photography Portfolio API is running!");
     }
+
+    
 }
