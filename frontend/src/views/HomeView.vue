@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+import PhotoGallery from '../components/PhotoGallery.vue'
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <PhotoGallery />
   </main>
 </template>

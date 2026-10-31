@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 @RequestMapping("/api/photos")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // Configure appropriately for production
+@CrossOrigin(origins = "http://localhost:5173") // Configure appropriately for production
 public class PhotoController {
     
     private final PhotoService photoService;
