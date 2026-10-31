@@ -1,6 +1,5 @@
 package com.portfolio.photographyportfolio.controller;
 
-import com.portfolio.photographyportfolio.dto.PhotoUploadRequest;
 import com.portfolio.photographyportfolio.model.Photo;
 import com.portfolio.photographyportfolio.service.PhotoService;
 import jakarta.validation.Valid;
@@ -42,70 +41,83 @@ public class PhotoController {
      * Upload photo with file
      * POST /api/photos/upload
      */
-  @PostMapping("/upload")
-    public ResponseEntity<?> uploadPhoto(@Valid @ModelAttribute PhotoUploadRequest req) {
-    MultipartFile file = req.file();
-    if (file.isEmpty()) {
-        return ResponseEntity.badRequest().body("Please select a file to upload");
-    }
-
-    String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
-    if (ext == null || !ALLOWED_EXT.contains(ext.toLowerCase())) {
-        return ResponseEntity.badRequest().body("Allowed types: " + ALLOWED_EXT);
-    }
-
-    // Verify it's really an image
-    try (InputStream in = file.getInputStream()) {
-        if (ImageIO.read(in) == null) {
-            return ResponseEntity.badRequest().body("File is not a valid image");
+    @PostMapping("/upload")
+    public ResponseEntity<?> uploadPhoto(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam("captureDate") String captureDate,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "tags", required = false) List<String> tags,
+            @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic,
+            @RequestParam(value = "isEdited", defaultValue = "false") boolean isEdited,
+            @RequestParam(value = "cameraModel", required = false) String cameraModel,
+            @RequestParam(value = "lens", required = false) String lens,
+            @RequestParam(value = "aperture", required = false) String aperture,
+            @RequestParam(value = "shutterSpeed", required = false) String shutterSpeed,
+            @RequestParam(value = "iso", required = false) Integer iso,
+            @RequestParam(value = "focalLength", required = false) String focalLength) {
+        
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Please select a file to upload");
+            }
+            
+            String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
+            if (ext == null || !ALLOWED_EXT.contains(ext.toLowerCase())) {
+                return ResponseEntity.badRequest().body("Allowed types: " + ALLOWED_EXT);
+            }
+            
+            // Verify it's really an image
+            try (InputStream in = file.getInputStream()) {
+                if (ImageIO.read(in) == null) {
+                    return ResponseEntity.badRequest().body("File is not a valid image");
+                }
+            } catch (IOException e) {
+                return ResponseEntity.badRequest().body("Could not read image");
+            }
+            
+            Path uploadPath = Paths.get(UPLOAD_DIR);
+            String uniqueFilename = UUID.randomUUID() + "." + ext.toLowerCase();
+            Path target = uploadPath.resolve(uniqueFilename);
+            
+            Files.createDirectories(uploadPath);
+            file.transferTo(target);
+            
+            Photo photo = new Photo();
+            photo.setTitle(title);
+            photo.setDescription(description);
+            photo.setFileName(uniqueFilename);
+            photo.setFilePath(UPLOAD_DIR + uniqueFilename);
+            photo.setFileType(file.getContentType());
+            photo.setFileSize(file.getSize());
+            photo.setCaptureDate(LocalDateTime.parse(captureDate));
+            photo.setLocation(location);
+            photo.setTags(tags);
+            photo.setEdited(isEdited);
+            photo.setPublic(isPublic);
+            
+            if (cameraModel != null || lens != null || aperture != null || 
+                shutterSpeed != null || iso != null || focalLength != null) {
+                Photo.CameraSettings cs = new Photo.CameraSettings();
+                cs.setCameraModel(cameraModel);
+                cs.setLens(lens);
+                cs.setAperture(aperture);
+                cs.setShutterSpeed(shutterSpeed);
+                cs.setIso(iso);
+                cs.setFocalLength(focalLength);
+                photo.setCameraSettings(cs);
+            }
+            
+            Photo saved = photoService.createPhoto(photo);
+            log.info("File uploaded successfully: {}", uniqueFilename);
+            return ResponseEntity.created(URI.create("/api/photos/" + saved.getId())).body(saved);
+            
+        } catch (Exception e) {
+            log.error("Upload failed", e);
+            return ResponseEntity.internalServerError().body("Upload failed: " + e.getMessage());
         }
-    } catch (IOException e) {
-        return ResponseEntity.badRequest().body("Could not read image");
     }
-
-    Path uploadPath = Paths.get(UPLOAD_DIR);
-    String uniqueFilename = UUID.randomUUID() + "." + ext.toLowerCase();
-    Path target = uploadPath.resolve(uniqueFilename);
-
-    try {
-        Files.createDirectories(uploadPath);
-        file.transferTo(target);
-
-        Photo photo = new Photo();
-        photo.setTitle(req.title());
-        photo.setDescription(req.description());
-        photo.setFileName(uniqueFilename);          // store name only
-        photo.setFileType(file.getContentType());
-        photo.setFileSize(file.getSize());
-        photo.setCaptureDate(req.captureDate());
-        photo.setLocation(req.location());
-        photo.setTags(req.tags());
-        photo.setEdited(Boolean.TRUE.equals(req.isEdited()));
-        photo.setPublic(req.isPublic() == null || req.isPublic());
-
-        if (Stream.of(req.cameraModel(), req.lens(), req.aperture(),
-                      req.shutterSpeed(), req.iso(), req.focalLength())
-                  .anyMatch(Objects::nonNull)) {
-            var cs = new Photo.CameraSettings();
-            cs.setCameraModel(req.cameraModel());
-            cs.setLens(req.lens());
-            cs.setAperture(req.aperture());
-            cs.setShutterSpeed(req.shutterSpeed());
-            cs.setIso(req.iso());
-            cs.setFocalLength(req.focalLength());
-            photo.setCameraSettings(cs);
-        }
-
-        Photo saved = photoService.createPhoto(photo);
-        log.info("File uploaded successfully: {}", uniqueFilename);
-        return ResponseEntity.created(URI.create("/api/photos/" + saved.getId())).body(saved);
-
-    } catch (Exception e) {
-        try { Files.deleteIfExists(target); } catch (IOException ignored) {}
-        log.error("Upload failed", e);
-        return ResponseEntity.internalServerError().body("Upload failed");
-    }
-}
     
     /**
      * Create a new photo
@@ -287,6 +299,33 @@ public class PhotoController {
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Photography Portfolio API is running!");
+    }
+    
+    /**
+     * Serve uploaded image files
+     * GET /api/photos/images/{filename}
+     */
+    @GetMapping("/images/{filename}")
+    public ResponseEntity<byte[]> getImage(@PathVariable String filename) {
+        try {
+            Path imagePath = Paths.get(UPLOAD_DIR).resolve(filename);
+            if (!Files.exists(imagePath)) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            byte[] imageBytes = Files.readAllBytes(imagePath);
+            String contentType = Files.probeContentType(imagePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+            
+            return ResponseEntity.ok()
+                    .header("Content-Type", contentType)
+                    .body(imageBytes);
+        } catch (IOException e) {
+            log.error("Error reading image file: {}", filename, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     

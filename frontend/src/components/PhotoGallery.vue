@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { fetchPhotos, type Photo } from '../services/photoService';
 
 
+
 const photos = ref<Photo[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -46,6 +47,10 @@ onMounted(async () => {
                     </p>
                     <div v-if="photo.cameraSettings" class="camera-info">
                         <p v-if="photo.cameraSettings.cameraModel">📷 {{ photo.cameraSettings.cameraModel }}</p>
+                        <p v-if="photo.cameraSettings.lens">{{ photo.cameraSettings.lens }}</p>
+                        <p v-if="photo.cameraSettings.aperture">{{ photo.cameraSettings.aperture }}</p>
+                        <p v-if="photo.cameraSettings.iso">{{ photo.cameraSettings.iso }}</p>
+                        <p v-if="photo.cameraSettings.focalLength">{{ photo.cameraSettings.focalLength }}</p>
                     </div>
                 </div>
             </div>
