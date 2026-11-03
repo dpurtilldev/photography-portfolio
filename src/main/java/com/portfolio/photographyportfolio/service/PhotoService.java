@@ -17,6 +17,7 @@ import java.util.Optional;
 public class PhotoService {
     
     private final PhotoRepository photoRepository;
+    private final AzureBlobStorageService azureBlobStorageService;
 
     
     
@@ -60,7 +61,7 @@ public class PhotoService {
                     existingPhoto.setTitle(photoDetails.getTitle());
                     existingPhoto.setDescription(photoDetails.getDescription());
                     existingPhoto.setFileName(photoDetails.getFileName());
-                    existingPhoto.setFilePath(photoDetails.getFilePath());
+                    existingPhoto.setBlobUrl(photoDetails.getBlobUrl());
                     existingPhoto.setFileType(photoDetails.getFileType());
                     existingPhoto.setFileSize(photoDetails.getFileSize());
                     existingPhoto.setCaptureDate(photoDetails.getCaptureDate());
@@ -78,12 +79,25 @@ public class PhotoService {
     }
     
     /**
-     * Delete photo by ID
+     * Delete photo by ID and its blob from Azure Storage
      */
     @Transactional
     public void deletePhoto(String id) {
         log.info("Deleting photo with id: {}", id);
-        photoRepository.deleteById(id);
+        photoRepository.findById(id).ifPresent(photo -> {
+            // Delete from Azure Blob Storage
+            if (photo.getBlobUrl() != null && !photo.getBlobUrl().isEmpty()) {
+                try {
+                    azureBlobStorageService.deleteFile(photo.getBlobUrl());
+                    log.info("Deleted blob for photo: {}", id);
+                } catch (Exception e) {
+                    log.error("Failed to delete blob for photo: {}", id, e);
+                    // Continue with DB deletion even if blob deletion fails
+                }
+            }
+            // Delete from database
+            photoRepository.deleteById(id);
+        });
     }
     
     /**

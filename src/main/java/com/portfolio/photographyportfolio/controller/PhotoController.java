@@ -1,6 +1,7 @@
 package com.portfolio.photographyportfolio.controller;
 
 import com.portfolio.photographyportfolio.model.Photo;
+import com.portfolio.photographyportfolio.service.AzureBlobStorageService;
 import com.portfolio.photographyportfolio.service.PhotoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,16 +16,9 @@ import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/photos")
@@ -34,7 +28,7 @@ import java.util.stream.Stream;
 public class PhotoController {
     
     private final PhotoService photoService;
-    private static final String UPLOAD_DIR = "uploads/photos/";
+    private final AzureBlobStorageService azureBlobStorageService;
     private static final Set<String> ALLOWED_EXT = Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp");
     
     /**
@@ -77,18 +71,15 @@ public class PhotoController {
                 return ResponseEntity.badRequest().body("Could not read image");
             }
             
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            String uniqueFilename = UUID.randomUUID() + "." + ext.toLowerCase();
-            Path target = uploadPath.resolve(uniqueFilename);
-            
-            Files.createDirectories(uploadPath);
-            file.transferTo(target);
+            // Upload to Azure Blob Storage
+            String blobUrl = azureBlobStorageService.uploadFile(file, file.getContentType());
+            log.info("File uploaded to Azure Blob Storage: {}", blobUrl);
             
             Photo photo = new Photo();
             photo.setTitle(title);
             photo.setDescription(description);
-            photo.setFileName(uniqueFilename);
-            photo.setFilePath(UPLOAD_DIR + uniqueFilename);
+            photo.setFileName(file.getOriginalFilename());
+            photo.setBlobUrl(blobUrl);
             photo.setFileType(file.getContentType());
             photo.setFileSize(file.getSize());
             photo.setCaptureDate(LocalDateTime.parse(captureDate));
@@ -110,7 +101,7 @@ public class PhotoController {
             }
             
             Photo saved = photoService.createPhoto(photo);
-            log.info("File uploaded successfully: {}", uniqueFilename);
+            log.info("Photo metadata saved to database with id: {}", saved.getId());
             return ResponseEntity.created(URI.create("/api/photos/" + saved.getId())).body(saved);
             
         } catch (Exception e) {
@@ -299,33 +290,6 @@ public class PhotoController {
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Photography Portfolio API is running!");
-    }
-    
-    /**
-     * Serve uploaded image files
-     * GET /api/photos/images/{filename}
-     */
-    @GetMapping("/images/{filename}")
-    public ResponseEntity<byte[]> getImage(@PathVariable String filename) {
-        try {
-            Path imagePath = Paths.get(UPLOAD_DIR).resolve(filename);
-            if (!Files.exists(imagePath)) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            byte[] imageBytes = Files.readAllBytes(imagePath);
-            String contentType = Files.probeContentType(imagePath);
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
-            
-            return ResponseEntity.ok()
-                    .header("Content-Type", contentType)
-                    .body(imageBytes);
-        } catch (IOException e) {
-            log.error("Error reading image file: {}", filename, e);
-            return ResponseEntity.internalServerError().build();
-        }
     }
 
     

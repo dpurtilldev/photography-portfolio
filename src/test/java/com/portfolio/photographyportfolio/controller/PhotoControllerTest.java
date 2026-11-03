@@ -3,6 +3,7 @@ package com.portfolio.photographyportfolio.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.portfolio.photographyportfolio.model.Photo;
+import com.portfolio.photographyportfolio.service.AzureBlobStorageService;
 import com.portfolio.photographyportfolio.service.PhotoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +41,9 @@ class PhotoControllerTest {
     @MockBean
     private PhotoService photoService;
 
+    @MockBean
+    private AzureBlobStorageService azureBlobStorageService;
+
     private ObjectMapper objectMapper;
     private Photo testPhoto;
 
@@ -62,7 +66,7 @@ class PhotoControllerTest {
                 .title("Sunset Beach")
                 .description("Beautiful sunset at the beach")
                 .fileName("sunset.jpg")
-                .filePath("/photos/sunset.jpg")
+                .blobUrl("/photos/sunset.jpg")
                 .fileType("image/jpeg")
                 .fileSize(2048576L)
                 .captureDate(LocalDateTime.of(2024, 8, 15, 18, 30))
@@ -137,7 +141,7 @@ class PhotoControllerTest {
                 .id("2")
                 .title("Mountain View")
                 .fileName("mountain.jpg")
-                .filePath("/photos/mountain.jpg")
+                .blobUrl("/photos/mountain.jpg")
                 .captureDate(LocalDateTime.now())
                 .build();
 
@@ -196,7 +200,7 @@ class PhotoControllerTest {
                 .title("Updated Sunset")
                 .description("Updated description")
                 .fileName("sunset_updated.jpg")
-                .filePath("/photos/sunset_updated.jpg")
+                .blobUrl("/photos/sunset_updated.jpg")
                 .captureDate(LocalDateTime.of(2024, 8, 15, 18, 30))
                 .build();
 

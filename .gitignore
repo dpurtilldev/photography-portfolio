@@ -26,3 +26,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Uploaded files (no longer needed with Azure Blob Storage)
+uploads/

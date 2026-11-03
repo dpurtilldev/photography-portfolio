@@ -30,8 +30,8 @@ public class Photo {
     @NotBlank(message = "File name is required")
     private String fileName;
     
-    @NotBlank(message = "File path is required")
-    private String filePath;
+    @NotBlank(message = "Blob URL is required")
+    private String blobUrl; // Azure Blob Storage URL
     
     private String fileType;
     

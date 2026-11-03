@@ -27,6 +27,9 @@ class PhotoServiceTest {
     @Mock
     private PhotoRepository photoRepository;
 
+    @Mock
+    private AzureBlobStorageService azureBlobStorageService;
+
     @InjectMocks
     private PhotoService photoService;
 
@@ -49,7 +52,7 @@ class PhotoServiceTest {
                 .title("Sunset Beach")
                 .description("Beautiful sunset at the beach")
                 .fileName("sunset.jpg")
-                .filePath("/photos/sunset.jpg")
+                .blobUrl("/photos/sunset.jpg")
                 .fileType("image/jpeg")
                 .fileSize(2048576L)
                 .captureDate(LocalDateTime.of(2024, 8, 15, 18, 30))
@@ -85,7 +88,7 @@ class PhotoServiceTest {
         Photo photoWithoutUploadDate = Photo.builder()
                 .title("Test Photo")
                 .fileName("test.jpg")
-                .filePath("/test.jpg")
+                .blobUrl("/test.jpg")
                 .captureDate(LocalDateTime.now())
                 .build();
 
@@ -105,7 +108,7 @@ class PhotoServiceTest {
         Photo editedPhoto = Photo.builder()
                 .title("Edited Photo")
                 .fileName("edited.jpg")
-                .filePath("/edited.jpg")
+                .blobUrl("/edited.jpg")
                 .captureDate(LocalDateTime.now())
                 .isEdited(true)
                 .build();
@@ -127,7 +130,7 @@ class PhotoServiceTest {
                 .id("2")
                 .title("Mountain View")
                 .fileName("mountain.jpg")
-                .filePath("/photos/mountain.jpg")
+                .blobUrl("/photos/mountain.jpg")
                 .captureDate(LocalDateTime.now())
                 .build();
 
@@ -180,7 +183,7 @@ class PhotoServiceTest {
                 .title("Updated Sunset")
                 .description("Updated description")
                 .fileName("sunset_updated.jpg")
-                .filePath("/photos/sunset_updated.jpg")
+                .blobUrl("/photos/sunset_updated.jpg")
                 .fileType("image/jpeg")
                 .fileSize(3048576L)
                 .captureDate(LocalDateTime.of(2024, 8, 15, 18, 30))
@@ -215,7 +218,7 @@ class PhotoServiceTest {
         Photo updatedDetails = Photo.builder()
                 .title("Updated Title")
                 .fileName("test.jpg")
-                .filePath("/test.jpg")
+                .blobUrl("/test.jpg")
                 .captureDate(LocalDateTime.now())
                 .build();
 
@@ -232,12 +235,16 @@ class PhotoServiceTest {
     @DisplayName("Should delete photo successfully")
     void testDeletePhoto() {
         // Given
+        when(photoRepository.findById("1")).thenReturn(Optional.of(testPhoto));
+        when(azureBlobStorageService.deleteFile(anyString())).thenReturn(true);
         doNothing().when(photoRepository).deleteById("1");
 
         // When
         photoService.deletePhoto("1");
 
         // Then
+        verify(photoRepository, times(1)).findById("1");
+        verify(azureBlobStorageService, times(1)).deleteFile(testPhoto.getBlobUrl());
         verify(photoRepository, times(1)).deleteById("1");
     }
 
