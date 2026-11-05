@@ -27,11 +27,23 @@ public class AzureBlobStorageService {
     @Value("${azure.storage.container-name}")
     private String containerName;
     
+    @Value("${azure.storage.enabled:true}")
+    private boolean azureEnabled;
+    
     private BlobServiceClient blobServiceClient;
     private BlobContainerClient containerClient;
+    private boolean initialized = false;
     
     @PostConstruct
     public void init() {
+        // Check if Azure is properly configured
+        if (!isAzureConfigured()) {
+            log.warn("Azure Blob Storage is not properly configured. Service will run in MOCK mode.");
+            log.warn("Please configure AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_ACCOUNT_NAME in your .env file");
+            this.initialized = false;
+            return;
+        }
+        
         try {
             log.info("Initializing Azure Blob Storage Service");
             this.blobServiceClient = new BlobServiceClientBuilder()
@@ -50,10 +62,21 @@ public class AzureBlobStorageService {
             } else {
                 log.info("Container '{}' already exists", containerName);
             }
+            this.initialized = true;
+            log.info("Azure Blob Storage initialized successfully");
         } catch (Exception e) {
-            log.error("Failed to initialize Azure Blob Storage: {}", e.getMessage(), e);
-            throw new RuntimeException("Could not initialize Azure Blob Storage", e);
+            log.error("Failed to initialize Azure Blob Storage: {}", e.getMessage());
+            log.warn("Service will run in MOCK mode. Upload functionality will return mock URLs.");
+            this.initialized = false;
         }
+    }
+    
+    private boolean isAzureConfigured() {
+        return azureEnabled 
+            && connectionString != null 
+            && !connectionString.isEmpty()
+            && !connectionString.contains("YOUR_ACCOUNT_NAME")
+            && !connectionString.contains("YOUR_ACCOUNT_KEY");
     }
     
     /**
@@ -63,6 +86,13 @@ public class AzureBlobStorageService {
      * @return The URL of the uploaded blob
      */
     public String uploadFile(MultipartFile file, String contentType) throws IOException {
+        if (!initialized) {
+            // Mock mode - return a fake URL
+            String mockUrl = "http://localhost:8181/mock-storage/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+            log.warn("Azure not configured. Returning mock URL: {}", mockUrl);
+            return mockUrl;
+        }
+        
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         
@@ -84,6 +114,13 @@ public class AzureBlobStorageService {
      * @return The URL of the uploaded blob
      */
     public String uploadFile(InputStream inputStream, String blobName, String contentType, long length) throws IOException {
+        if (!initialized) {
+            // Mock mode - return a fake URL
+            String mockUrl = "http://localhost:8181/mock-storage/" + blobName;
+            log.warn("Azure not configured. Returning mock URL: {}", mockUrl);
+            return mockUrl;
+        }
+        
         try {
             log.info("Uploading blob: {}", blobName);
             
@@ -112,6 +149,11 @@ public class AzureBlobStorageService {
      * @return true if deleted successfully, false otherwise
      */
     public boolean deleteFile(String blobUrl) {
+        if (!initialized) {
+            log.warn("Azure not configured. Mock delete for URL: {}", blobUrl);
+            return true; // Pretend success in mock mode
+        }
+        
         try {
             String blobName = extractBlobNameFromUrl(blobUrl);
             log.info("Deleting blob: {}", blobName);

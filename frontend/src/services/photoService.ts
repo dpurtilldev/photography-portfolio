@@ -16,7 +16,7 @@ export interface Photo {
     title: string;
     description?: string;
     fileName: string;
-    filePath: string;
+    blobUrl: string;  // Changed from filePath to blobUrl - this is the Azure Blob Storage URL
     fileType?: string;
     fileSize?: number;
     captureDate: string;
@@ -26,9 +26,9 @@ export interface Photo {
     location?: string;
     tags?: string[];
     editingSoftware?: string;
-    isEdited: boolean;
+    edited: boolean;  // Changed from isEdited to edited to match backend
     thumbnailPath?: string;
-    isPublic: boolean;
+    public: boolean;  // Changed from isPublic to public to match backend
 }
 
 export async function fetchPhotos(): Promise<Photo[]>{

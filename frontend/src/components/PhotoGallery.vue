@@ -8,10 +8,11 @@ const photos = ref<Photo[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
-const getImageUrl = (photo: Photo) => {
-    // Construct the image URL from the filePath or fileName
-    return `http://localhost:8181/${photo.filePath}` || `http://localhost:8181/uploads/photos/${photo.fileName}`;
-};
+// const getImageUrl = (photo: Photo) => {
+//     // Construct the image URL from the filePath or fileName
+//     return `http://localhost:8181/${photo.filePath}` || `http://localhost:8181/uploads/photos/${photo.fileName}`;
+// };
+
 
 onMounted(async () => {
     try {
@@ -26,7 +27,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="photo-gallery">
+    <!-- <div class="photo-gallery">
         <h1>Photo Gallery</h1>
         
         <p v-if="loading">Loading...</p>
@@ -55,25 +56,31 @@ onMounted(async () => {
                 </div>
             </div>
         </div>
+    </div> -->
+
+    <div class="gallery">
+        <div v-for="photo in photos" :key="photo.id" class="photo-item">
+            <img :src="photo.blobUrl" :alt="photo.title" />
+            <div class="photo-info">
+
+                <h3>{{ photo.title }}</h3>
+                <p>{{ photo.description }}</p>
+
+
+            </div>
+        </div>
+
     </div>
 </template>
 
 <style scoped>
-.photo-gallery {
+/* .photo-gallery {
     padding: 20px;
 }
 
-.error {
-    color: red;
-    font-weight: bold;
-}
 
-.gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
+
+
 
 .photo-card {
     border: 1px solid #ddd;
@@ -150,5 +157,31 @@ onMounted(async () => {
     font-size: 0.85em;
     color: #999;
     margin-top: 10px;
+} */
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
 }
+
+.photo-item img {
+    width: 100%;
+    height: 300px;
+    /* Fixed height is key! */
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.photo-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+}
+
 </style>

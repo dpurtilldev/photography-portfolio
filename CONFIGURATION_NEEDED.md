@@ -1,25 +1,43 @@
 # Configuration Required
 
-Before running the application, you need to provide the following credentials in `src/main/resources/application.properties`:
+Before running the application, you need to provide your credentials in the `.env` file at the project root.
 
 ## ✅ Already Configured
 
 - ✅ MongoDB database name: `userportfoliophotos`
-- ✅ MongoDB Atlas connection string (already in application.properties)
 - ✅ Server port: 8181
 - ✅ File upload limits: 10MB
+- ✅ `.env` file created (you need to fill in your credentials)
 
 ## ⚠️ NEEDS YOUR INPUT
 
-### Azure Blob Storage Credentials
+### 1. MongoDB Connection String
 
-You need to replace these placeholders in `application.properties`:
+Open the `.env` file and replace this line:
 
-```properties
+```
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/userportfoliophotos?retryWrites=true&w=majority
+```
+
+**Options:**
+
+**Option A: MongoDB Atlas (Cloud - Recommended)**
+- Get your connection string from MongoDB Atlas
+- Format: `mongodb+srv://username:password@cluster.mongodb.net/userportfoliophotos?retryWrites=true&w=majority`
+
+**Option B: Local MongoDB (for testing)**
+- Install MongoDB locally
+- Use: `mongodb://localhost:27017/photography_portfolio`
+
+### 2. Azure Blob Storage Credentials
+
+You need to update these values in the `.env` file:
+
+```env
 # Azure Blob Storage Configuration
-azure.storage.connection-string=YOUR_AZURE_STORAGE_CONNECTION_STRING
-azure.storage.container-name=photos
-azure.storage.account-name=YOUR_STORAGE_ACCOUNT_NAME
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=YOUR_ACCOUNT_NAME;AccountKey=YOUR_ACCOUNT_KEY;EndpointSuffix=core.windows.net
+AZURE_STORAGE_CONTAINER_NAME=photos
+AZURE_STORAGE_ACCOUNT_NAME=YOUR_ACCOUNT_NAME
 ```
 
 ### How to Get Azure Credentials
@@ -36,13 +54,19 @@ DefaultEndpointsProtocol=https;AccountName=mystorageaccount;AccountKey=abc123...
 
 5. **Get your Account Name**: It's the name you gave your storage account when creating it
 
-### Example Configuration
+### Example .env File
 
-```properties
-# Example (use YOUR actual values)
-azure.storage.connection-string=DefaultEndpointsProtocol=https;AccountName=photographyportfolio2024;AccountKey=aBcD1234eFgH5678...==;EndpointSuffix=core.windows.net
-azure.storage.container-name=photos
-azure.storage.account-name=photographyportfolio2024
+```env
+# MongoDB Configuration
+MONGODB_URI=mongodb+srv://myuser:mypassword@cluster0.mongodb.net/userportfoliophotos?retryWrites=true&w=majority
+
+# Azure Configuration (use YOUR actual values)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=photographyportfolio2024;AccountKey=aBcD1234eFgH5678...==;EndpointSuffix=core.windows.net
+AZURE_STORAGE_CONTAINER_NAME=photos
+AZURE_STORAGE_ACCOUNT_NAME=photographyportfolio2024
+
+# Server Configuration
+SERVER_PORT=8181
 ```
 
 ## Container Name
@@ -56,29 +80,29 @@ You can change the container name if you prefer something else.
 ## Security Best Practices
 
 ### For Development
-- It's okay to put credentials directly in `application.properties` 
-- **BUT** make sure `application.properties` is in `.gitignore` (it already is)
+- ✅ Keep your credentials in the `.env` file
+- ✅ The `.env` file is already in `.gitignore` (won't be committed to git)
+- ⚠️ **NEVER** commit your `.env` file to version control
 
 ### For Production
-Use environment variables instead:
+The application already uses environment variables via the `.env` file approach, which is perfect for deployment platforms like:
+- Heroku
+- AWS Elastic Beanstalk
+- Azure App Service
+- Docker containers
 
-```properties
-azure.storage.connection-string=${AZURE_STORAGE_CONNECTION_STRING}
-azure.storage.container-name=${AZURE_STORAGE_CONTAINER_NAME:photos}
-azure.storage.account-name=${AZURE_STORAGE_ACCOUNT_NAME}
-```
-
-Then set these environment variables on your deployment platform.
+Just set the environment variables on your deployment platform.
 
 ## Next Steps
 
-1. ✅ Open `src/main/resources/application.properties`
-2. ✅ Replace `YOUR_AZURE_STORAGE_CONNECTION_STRING` with your actual connection string
-3. ✅ Replace `YOUR_STORAGE_ACCOUNT_NAME` with your actual account name
-4. ✅ Optionally change `photos` to your preferred container name
-5. ✅ Run `mvn clean install`
-6. ✅ Run `mvn spring-boot:run`
-7. ✅ Test with `curl http://localhost:8181/api/photos/health`
+1. ✅ Open the `.env` file in the project root
+2. ✅ Add your MongoDB connection string (from MongoDB Atlas or use local MongoDB)
+3. ✅ Add your Azure Storage connection string (from Azure Portal)
+4. ✅ Add your Azure Storage account name
+5. ✅ Optionally change `photos` to your preferred container name
+6. ✅ Run `mvn clean install` to install the new dependencies
+7. ✅ Run `mvn spring-boot:run` to start the application
+8. ✅ Test with `curl http://localhost:8181/api/photos/health`
 
 ## Need Help?
 
