@@ -1,0 +1,43 @@
+package com.portfolio.photographyportfolio.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Security configuration for the application.
+ * Configures password encoding and basic endpoint security.
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    /**
+     * Password encoder bean using BCrypt hashing algorithm.
+     * BCrypt is a one-way hash function designed for password security.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Security filter chain configuration.
+     * Currently permits all requests for development.
+     * TODO: Add proper authentication/authorization for production.
+     */
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())  // Disable CSRF for REST API
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll()  // Allow all requests for now
+            );
+        
+        return http.build();
+    }
+}

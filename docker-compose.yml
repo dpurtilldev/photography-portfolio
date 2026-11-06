@@ -1,0 +1,56 @@
+# Local development services.
+#
+#   docker compose up -d                   -> starts Postgres only
+#   docker compose --profile local up -d   -> also starts local Mongo + Azurite
+#
+# Values come from the .env file next to this file (the same one Spring reads),
+# with dev-only defaults so it works out of the box.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: portfolio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-photography_portfolio_users}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # only reachable from this machine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: the app uses MongoDB Atlas by default (MONGODB_URI in .env).
+  # To use this instead, set MONGODB_URI=mongodb://localhost:27017/photography_portfolio
+  mongo:
+    image: mongo:7
+    container_name: portfolio-mongo
+    profiles: ["local"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  # Optional: local Azure Blob Storage emulator.
+  # To use it, set AZURE_STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: portfolio-azurite
+    profiles: ["local"]
+    restart: unless-stopped
+    command: azurite-blob --blobHost 0.0.0.0 --location /data --skipApiVersionCheck
+    ports:
+      - "127.0.0.1:10000:10000"
+    volumes:
+      - azuritedata:/data
+
+volumes:
+  pgdata:
+  mongodata:
+  azuritedata:
