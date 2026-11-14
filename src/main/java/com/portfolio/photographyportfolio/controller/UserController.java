@@ -44,4 +44,9 @@ public class UserController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
+
+//    @PutMapping("update/user")
+//    public ResponseEntity<UserResponse> updateUser(@Valid @RequestBody UserRegistrationRequest request) {
+//
+//    }
 }

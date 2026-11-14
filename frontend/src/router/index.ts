@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import PhotoGallery from '../components/PhotoGallery.vue'
 
 
 const router = createRouter({
@@ -8,12 +8,12 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: PhotoGallery,
     },
     {
+      // The gallery is the homepage now; keep old /gallery links working.
       path: '/gallery',
-      name: 'gallery',
-      component: () => import('../components/PhotoGallery.vue'),
+      redirect: '/',
     },
     {
       path: '/userpage',
